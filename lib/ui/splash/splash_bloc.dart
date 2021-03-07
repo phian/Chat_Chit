@@ -11,7 +11,6 @@ class SplashBloc extends BaseBloc {
   final UserRepo userRepo;
 
   StreamController<bool> splashScreenStreamController;
-  Stream splashScreenStream;
 
   bool isLogin = true;
   Future<void> updateIsLogin() async {
@@ -26,7 +25,6 @@ class SplashBloc extends BaseBloc {
   }) {
     psUserLoginState = BehaviorSubject();
     splashScreenStreamController = StreamController<bool>();
-    splashScreenStream = splashScreenStreamController.stream;
   }
 
   // Future<bool> checkLoginTimeOut() {

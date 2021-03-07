@@ -67,6 +67,7 @@ class _SplashViewState extends BaseStateBloc<SplashView, SplashBloc> {
     );
   }
 
+  /// Sign option button
   Widget _signOptionContent({
     bool isSignIn,
     String facebookDisplayText,
@@ -75,7 +76,7 @@ class _SplashViewState extends BaseStateBloc<SplashView, SplashBloc> {
     String kakaoDisplayText,
   }) {
     return StreamBuilder(
-      stream: getBloc().splashScreenStream,
+      stream: getBloc().splashScreenStreamController.stream,
       builder: (context, snapshot) {
         return Align(
           alignment: Alignment.bottomCenter,
@@ -109,6 +110,7 @@ class _SplashViewState extends BaseStateBloc<SplashView, SplashBloc> {
                     child: AppActionsButton(
                       buttonContent: facebookDisplayText,
                       borderSideColor: Colors.blue,
+                      onPressed: () {},
                     ),
                   ),
                   AppPaddingWidget(
@@ -116,6 +118,7 @@ class _SplashViewState extends BaseStateBloc<SplashView, SplashBloc> {
                     child: AppActionsButton(
                       buttonContent: googleDisplayText,
                       borderSideColor: Color(0xFFE9433A),
+                      onPressed: () {},
                     ),
                   ),
                   AppPaddingWidget(
@@ -123,6 +126,7 @@ class _SplashViewState extends BaseStateBloc<SplashView, SplashBloc> {
                     child: AppActionsButton(
                       buttonContent: appleDisplayText,
                       borderSideColor: Color(0xFF8A8A8A),
+                      onPressed: () {},
                     ),
                   ),
                   AppPaddingWidget(
@@ -130,6 +134,7 @@ class _SplashViewState extends BaseStateBloc<SplashView, SplashBloc> {
                     child: AppActionsButton(
                       buttonContent: kakaoDisplayText,
                       borderSideColor: Color(0xFF331919),
+                      onPressed: () {},
                     ),
                   ),
                   AppPaddingWidget(
