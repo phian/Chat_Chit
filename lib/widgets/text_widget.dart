@@ -22,6 +22,8 @@ class AppTextWidget extends StatelessWidget {
     return Text(
       this.textContent,
       textAlign: textAlign,
+      overflow: TextOverflow.ellipsis,
+      maxLines: textMaxLine ?? 1000,
       style: TextStyle(
         fontWeight: this.fontWeight ?? null,
         fontSize: this.fontSize ?? null,

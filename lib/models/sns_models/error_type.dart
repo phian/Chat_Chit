@@ -1,0 +1,6 @@
+enum ErrorType {
+  NONE,
+  CANCELLED_BY_USER,
+  INTERNAL,
+  UNHANDLED,
+}
