@@ -1,8 +1,6 @@
-import 'dart:collection';
 
 import 'package:chat_chit/models/sns_models/error_type.dart';
 import 'package:chat_chit/models/sns_models/sns_model.dart';
-import 'package:flutter/foundation.dart';
 
 class FacebookUserModel extends SNSModel {
   String firstName, lastName;

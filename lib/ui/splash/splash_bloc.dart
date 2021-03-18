@@ -4,6 +4,7 @@ import 'package:chat_chit/base/base_bloc.dart';
 import 'package:chat_chit/constant/app_state.dart';
 import 'package:chat_chit/constant/sns_constant/sns_type.dart';
 import 'package:chat_chit/repo/user_repo.dart';
+import 'package:chat_chit/utils/device_utils.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
@@ -21,6 +22,14 @@ class SplashBloc extends BaseBloc {
     splashScreenStreamController.add(userStates);
   }
 
+  Future<void> updateFirebaseUser() async {
+    return await userRepo.firebaseAPI
+        .getFacebookUserFromFireBase(userRepo.facebookAPI.accessToken)
+        .then((value) {
+      if (value != null) userRepo.firebaseUser = value;
+    });
+  }
+
   Future<void> chooseLogInOrSignUpAction(
       UserStates userStates, SNSTypes snsType) async {
     // FirebaseAuth.instance.signInWithCredential(FacebookAuthProvider.credential(accessToken));
@@ -34,7 +43,11 @@ class SplashBloc extends BaseBloc {
             userRepo.facebookAPI.facebookLogin().then((value) async {
               if (value == UserStates.LOGGED_IN) {
                 updateUserState(UserStates.LOGGED_IN);
-                checkAndUpdateUser();
+                DeviceUtils.getDeviceId().then((value) {
+                  if (value != null) {
+                    checkAndUpdateUser();
+                  }
+                });
               }
             });
             break;
@@ -58,7 +71,9 @@ class SplashBloc extends BaseBloc {
   Future<void> checkAndUpdateUser() async {
     await userRepo.firebaseAPI
         .getFacebookUserFromFireBase(userRepo.facebookAPI.accessToken)
-        .then((value) => userRepo.firebaseAPI.checkAndUpdateUser(value));
+        .then((value) {
+      if (value != null) userRepo.firebaseAPI.checkAndUpdateUser(value);
+    });
   }
 
   ///========================================================================///
@@ -137,6 +152,7 @@ class SplashBloc extends BaseBloc {
   @override
   void dispose() {
     psUserState.close();
+    splashScreenStreamController.close();
     super.dispose();
   }
 }

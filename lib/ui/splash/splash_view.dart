@@ -27,13 +27,15 @@ class _SplashViewState extends BaseStateBloc<SplashView, SplashBloc> {
     getBloc().splashScreenStreamController.stream.listen((event) {
       switch (event) {
         case UserStates.LOGGED_IN:
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) {
-                return messagesRoute;
-              },
-            ),
-          );
+          getBloc().updateFirebaseUser().then((value) {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) {
+                  return messagesRoute;
+                },
+              ),
+            );
+          });
           break;
         case UserStates.NOT_LOGGED_IN:
           break;

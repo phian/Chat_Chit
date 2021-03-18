@@ -9,6 +9,7 @@ import 'package:chat_chit/widgets/screen_content_container.dart';
 import 'package:chat_chit/widgets/text_widget.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'chat_bloc.dart';
 
@@ -26,9 +27,13 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
 
     _messageFieldController = TextEditingController();
     // debugPrint("user access token: ${getBloc().userRepo.facebookAPI.accessToken}");
-    getBloc().initChatData();
-    // getBloc().getChatRoom();
-    // getBloc().messages = getBloc().getMessagesFromFirebase(getBloc().room?.id);
+    getBloc().getChatRoom();
+    FirebaseFirestore.instance
+        .collection('messages')
+        .snapshots()
+        .listen((event) {
+      getBloc().getChatRoom();
+    });
   }
 
   @override
@@ -63,23 +68,23 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
                   suffixIcon: IconButton(
                     icon: Icon(SendIcon.send),
                     onPressed: () {
-                      getBloc()
-                          .userRepo
-                          .firebaseAPI
-                          .addMessage(
-                            sendUser: getBloc().firebaseUser,
-                            content: _messageFieldController.text,
-                            time: DateTime.now(),
-                            receiveUser: getBloc()
-                                .userRepo
-                                .firebaseAPI
-                                .receiveMessageUser,
-                          )
-                          .then((value) {
-                        getBloc().checkAddMessageReturnData(value);
-                      });
+                      getBloc().userRepo.firebaseAPI.createNotification(
+                          getBloc().messaging,
+                          getBloc().userRepo.firebaseUser.uid);
+                      getBloc().getChatRoom().then((room) {
+                        getBloc()
+                            .addMessage(_messageFieldController.text)
+                            .then((value) {
+                          getBloc().checkAddMessageReturnData(value);
 
-                      _messageFieldController = TextEditingController();
+                          if (value == MessageType.SENT) {
+                            getBloc().getChatRoom();
+                            // getBloc()
+                            //     .getMessagesFromFirebase(getBloc().room.id);
+                            _messageFieldController = TextEditingController();
+                          }
+                        });
+                      });
                     },
                   ),
                   hintText: "Enter message...",
@@ -113,45 +118,34 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
       child: CustomContainer(
         height: context.getScreenHeight(context) * 0.8,
         child: StreamBuilder(
-          stream: getBloc().userRepo.firebaseAPI.getAllMessageFromFirebase(),
+          stream: getBloc().bhMsg,
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
-              return Center(
-                  child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.red)));
+              return Container();
             }
-
-            return StreamBuilder(
-              stream: getBloc().bhMsg,
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return Center(
-                      child: CircularProgressIndicator(
-                          valueColor:
-                              AlwaysStoppedAnimation<Color>(Colors.red)));
-                }
-                return AppPaddingWidget(
-                  paddingBottom: context.getScreenHeight(context) * 0.1,
-                  child: ListView.separated(
-                    physics: AlwaysScrollableScrollPhysics(
-                      parent: BouncingScrollPhysics(),
-                    ),
-                    padding: EdgeInsets.all(10.0),
-                    itemBuilder: (context, index) {
-                      return _messageBox(
-                        type: MessageType.SENT,
-                        model: snapshot.data[index],
-                      );
-                    },
-                    separatorBuilder: (context, index) {
-                      return SizedBox(height: 10.0);
-                    },
-                    itemCount: snapshot.data.length,
-                    reverse: true,
-                    // reverse: true,
-                  ),
-                );
-              },
+            return AppPaddingWidget(
+              paddingBottom: context.getScreenHeight(context) * 0.1,
+              child: ListView.separated(
+                physics: AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
+                ),
+                padding: EdgeInsets.all(10.0),
+                itemBuilder: (context, index) {
+                  return _messageBox(
+                    type: (snapshot.data[index] as MessageModel).sendUserId ==
+                            getBloc().userRepo.firebaseUser.uid
+                        ? MessageType.SENT
+                        : MessageType.RECEIVED,
+                    model: snapshot.data[index],
+                  );
+                },
+                separatorBuilder: (context, index) {
+                  return SizedBox(height: 10.0);
+                },
+                itemCount: snapshot.data.length,
+                reverse: true,
+                // reverse: true,
+              ),
             );
           },
         ),
@@ -173,18 +167,42 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
             return Alignment.centerLeft;
         }
       }(),
-      child: Container(
-        alignment: Alignment.center,
-        child: AppTextWidget(
-          textContent: model.content,
-        ),
-        width: 100.0,
-        height: 60.0,
-        decoration: BoxDecoration(
-          color: Colors.grey,
-          borderRadius: BorderRadius.circular(
-            10,
-          ),
+      child: Row(
+        mainAxisAlignment: type == MessageType.SENT ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          type == MessageType.SENT ? _messageContent(model.content, type) : _profileImage(type),
+          type == MessageType.SENT ? _profileImage(type) : _messageContent(model.content, type),
+        ],
+      ),
+    );
+  }
+
+  /// Profile image
+  Widget _profileImage(MessageType type) {
+    return ClipRRect(
+      child: Image.network(
+        type == MessageType.SENT
+            ? getBloc().userRepo.firebaseUser.photoURL
+            : getBloc().userRepo.receiveMessageUser['profile_image'],
+      ),
+      borderRadius: BorderRadius.circular(90.0),
+    );
+  }
+
+  /// Message content
+  Widget _messageContent(String content, MessageType type) {
+    return Container(
+      margin: type == MessageType.SENT ? EdgeInsets.only(right: 10.0) : EdgeInsets.only(left: 10.0),
+      alignment: Alignment.center,
+      child: AppTextWidget(
+        textContent: content,
+      ),
+      width: 100.0,
+      height: 60.0,
+      decoration: BoxDecoration(
+        color: Colors.grey,
+        borderRadius: BorderRadius.circular(
+          10,
         ),
       ),
     );

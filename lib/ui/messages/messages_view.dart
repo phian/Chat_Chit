@@ -19,7 +19,8 @@ class _MessagesViewState extends BaseStateBloc<MessagesView, MessagesBloc> {
   @override
   void initState() {
     super.initState();
-    getBloc().userRepo.firebaseAPI.getFacebookUserFromFireBase(getBloc().userRepo.facebookAPI.accessToken);
+    getBloc().userRepo.firebaseAPI.getFacebookUserFromFireBase(
+        getBloc().userRepo.facebookAPI.accessToken);
     getBloc().userRepo.firebaseAPI.getAllUserFromFirebase();
   }
 
@@ -37,16 +38,21 @@ class _MessagesViewState extends BaseStateBloc<MessagesView, MessagesBloc> {
               stream: getBloc().userRepo.firebaseAPI.getAllUserFromFirebase(),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
-                  return AppTextWidget(textContent: "Loading...");
+                  return Center(
+                    child: AppTextWidget(textContent: "Loading..."),
+                  );
                 }
                 return ListView.separated(
                   physics: AlwaysScrollableScrollPhysics(
                     parent: BouncingScrollPhysics(),
                   ),
                   itemBuilder: (context, index) {
-                    return _messageDisplayWidget(
-                      document: snapshot.data.docs[index],
-                    );
+                    return (getBloc().userRepo.firebaseUser.uid !=
+                            snapshot.data.docs[index]['id'])
+                        ? _messageDisplayWidget(
+                            document: snapshot.data.docs[index],
+                          )
+                        : Container();
                   },
                   separatorBuilder: (context, index) {
                     return Divider(

@@ -37,6 +37,10 @@ dependencies:
   http: any
   cloud_firestore: ^0.16.0+1
   firebase_storage: ^7.0.0
+  firebase_messaging: ^6.0.16
+  flutter_local_notifications: ^4.0.1+2
+  fluttertoast: ^7.1.8
+  device_info: ^1.0.0
 
 dev_dependencies:
   flutter_test:

@@ -11,7 +11,7 @@ class MessagesBloc extends BaseBloc {
   MessagesBloc({this.userRepo});
 
   void navigateToChatScreen(BuildContext context, DocumentSnapshot document) {
-    userRepo.firebaseAPI.updateReceiveMessageUser(document);
+    userRepo.updateReceiveMessageUser(document);
 
     Navigator.of(context).push(
       MaterialPageRoute(

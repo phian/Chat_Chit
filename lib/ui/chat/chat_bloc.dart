@@ -1,9 +1,10 @@
+
 import 'package:chat_chit/base/base_bloc.dart';
 import 'package:chat_chit/constant/sns_constant/message_types.dart';
 import 'package:chat_chit/models/sns_models/message_model.dart';
 import 'package:chat_chit/repo/user_repo.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
@@ -11,8 +12,9 @@ import 'package:rxdart/rxdart.dart';
 class ChatBloc extends BaseBloc {
   final UserRepo userRepo;
   String chatContent;
-  User firebaseUser;
   DocumentSnapshot room;
+
+  FirebaseMessaging messaging;
 
   BehaviorSubject sendMessageStream;
   BehaviorSubject<List<MessageModel>> bhMsg;
@@ -20,6 +22,7 @@ class ChatBloc extends BaseBloc {
   ChatBloc({this.userRepo}) {
     sendMessageStream = BehaviorSubject();
     bhMsg = BehaviorSubject();
+    messaging = FirebaseMessaging();
   }
 
   // Future<void> getUserFromFirebaseForUpdateMessage() async {
@@ -53,14 +56,22 @@ class ChatBloc extends BaseBloc {
   //   debugPrint("firebaseUser uid: ${firebaseUser.uid}");
   // }
 
-  void getChatRoom() {
-    userRepo.firebaseAPI
+  Future<void> getChatRoom() async {
+    await userRepo.firebaseAPI
         .getChatRoomFromFirebase(
-            firebaseUser, userRepo.firebaseAPI.receiveMessageUser)
+            userRepo.firebaseUser, userRepo.receiveMessageUser)
         .then((value) {
       if (value != null) {
-        this.room = value.docs[0];
-        getMessagesFromFirebase(this.room.id);
+        if (value.docs.length != 0) {
+          this.room = value.docs[0];
+          getMessagesFromFirebase(this.room.id);
+        } else {
+          userRepo.firebaseAPI.getLatestRoom().then((value) {
+            if (value != null && value.docs.length != 0) {
+              room = value.docs[0];
+            }
+          });
+        }
       }
     });
   }
@@ -69,10 +80,11 @@ class ChatBloc extends BaseBloc {
     List<MessageModel> models = [];
 
     userRepo.firebaseAPI.getMessagesFromFirebase(roomId).then((value) {
-      if (value != null) {
+      if (value != null && value.docs.length != 0) {
         value.docs.forEach((element) {
           models.add(MessageModel.fromJson(element.data()));
         });
+
         bhMsg.add(models);
       }
     }).catchError((e) {
@@ -82,17 +94,13 @@ class ChatBloc extends BaseBloc {
     return models;
   }
 
-  void initChatData() {
-    userRepo.firebaseAPI
-        .getFacebookUserFromFireBase(userRepo.facebookAPI.accessToken)
-        .then((value) {
-      if (value != null) {
-        firebaseUser = value;
-        getChatRoom();
-        debugPrint(value.toString());
-      }
-    }).catchError((e) {
-      debugPrint(e.toString());
-    });
+  Future<MessageType> addMessage(String content) async {
+    return await userRepo.firebaseAPI.addMessage(
+      roomId: room.id,
+      sendUser: userRepo.firebaseUser,
+      content: content,
+      time: DateTime.now(),
+      receiveUser: userRepo.receiveMessageUser,
+    );
   }
 }
