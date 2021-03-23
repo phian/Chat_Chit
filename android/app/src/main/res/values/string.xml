@@ -3,4 +3,5 @@
     <string name="app_name">Chat Chit</string>
     <string name="facebook_app_id">4021839694543970</string>
     <string name="fb_login_protocol_scheme">fb4021839694543970</string>
+    <string name="default_notification_channel_id">ChatChitChannel</string>
 </resources>

@@ -17,8 +17,8 @@ class CustomContainer extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppPalleteColor.WHITE_COLOR,
         borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30.0),
-          topRight: Radius.circular(30.0),
+          topLeft: Radius.circular(12.0),
+          topRight: Radius.circular(12.0),
         ),
       ),
     );

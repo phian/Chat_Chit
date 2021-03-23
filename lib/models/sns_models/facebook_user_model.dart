@@ -1,4 +1,3 @@
-
 import 'package:chat_chit/models/sns_models/error_type.dart';
 import 'package:chat_chit/models/sns_models/sns_model.dart';
 
@@ -6,12 +5,17 @@ class FacebookUserModel extends SNSModel {
   String firstName, lastName;
   ErrorType facebookError;
   String errorMessage;
+  ///
+  String lastMessage;
+  String pushToken;
 
   FacebookUserModel({
     this.firstName,
     this.lastName,
     this.facebookError,
     this.errorMessage,
+    this.lastMessage,
+    this.pushToken,
     String id,
     String name,
     String email,

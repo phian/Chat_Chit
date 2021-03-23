@@ -1,6 +1,5 @@
 import 'package:chat_chit/repo/user_repo.dart';
 import 'package:chat_chit/ui/messages/messages_view.dart';
-import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'messages_bloc.dart';

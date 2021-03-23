@@ -1,7 +1,7 @@
+import 'package:chat_chit/models/sns_models/facebook_user_model.dart';
 import 'package:chat_chit/service/firebase_api/facebook_api.dart';
 import 'package:chat_chit/service/firebase_api/firebase_api.dart';
 import 'package:chat_chit/service/shared_preference_service.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -10,9 +10,10 @@ class UserRepo {
   final FirebaseAPI firebaseAPI;
   final FacebookAPI facebookAPI;
   User firebaseUser;
-  DocumentSnapshot receiveMessageUser;
+  FacebookUserModel receiveMessageUser;
+  String currentScreen;
 
-  void updateReceiveMessageUser(DocumentSnapshot user) {
+  void updateReceiveMessageUser(FacebookUserModel user) {
     this.receiveMessageUser = user;
   }
 

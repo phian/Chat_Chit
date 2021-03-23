@@ -72,7 +72,11 @@ class SplashBloc extends BaseBloc {
     await userRepo.firebaseAPI
         .getFacebookUserFromFireBase(userRepo.facebookAPI.accessToken)
         .then((value) {
-      if (value != null) userRepo.firebaseAPI.checkAndUpdateUser(value);
+      if (value != null) {
+        userRepo.firebaseAPI.checkAndUpdateUser(value).then((value) {
+          userRepo.firebaseAPI.updateUserToken(userRepo.firebaseUser.uid);
+        });
+      }
     });
   }
 

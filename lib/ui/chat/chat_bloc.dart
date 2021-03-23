@@ -1,10 +1,8 @@
-
 import 'package:chat_chit/base/base_bloc.dart';
 import 'package:chat_chit/constant/sns_constant/message_types.dart';
 import 'package:chat_chit/models/sns_models/message_model.dart';
 import 'package:chat_chit/repo/user_repo.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:rxdart/rxdart.dart';
@@ -14,25 +12,14 @@ class ChatBloc extends BaseBloc {
   String chatContent;
   DocumentSnapshot room;
 
-  FirebaseMessaging messaging;
-
   BehaviorSubject sendMessageStream;
   BehaviorSubject<List<MessageModel>> bhMsg;
 
   ChatBloc({this.userRepo}) {
     sendMessageStream = BehaviorSubject();
     bhMsg = BehaviorSubject();
-    messaging = FirebaseMessaging();
+    userRepo.currentScreen = "chat screen";
   }
-
-  // Future<void> getUserFromFirebaseForUpdateMessage() async {
-  //   // AuthCredential credential =
-  //   //     FacebookAuthProvider.credential(userRepo.facebookAPI.accessToken);
-  //   // FirebaseAuth firebaseAuth = FirebaseAuth.instance;
-  //   // firebaseUser = (await firebaseAuth.signInWithCredential(credential)).user;
-  //
-  //   userRepo.firebaseAPI.getFacebookUserFromFireBase(userRepo.facebookAPI.accessToken);
-  // }
 
   void checkAddMessageReturnData(MessageType type) {
     switch (type) {
@@ -49,22 +36,22 @@ class ChatBloc extends BaseBloc {
     }
   }
 
-  // Future<void> initFirebaseUser() async {
-  //   firebaseUser = await userRepo.firebaseAPI
-  //       .getFacebookUserFromFireBase(userRepo.facebookAPI.accessToken);
-  //
-  //   debugPrint("firebaseUser uid: ${firebaseUser.uid}");
-  // }
-
   Future<void> getChatRoom() async {
     await userRepo.firebaseAPI
         .getChatRoomFromFirebase(
-            userRepo.firebaseUser, userRepo.receiveMessageUser)
+            userRepo.firebaseUser, userRepo.receiveMessageUser, true)
         .then((value) {
       if (value != null) {
         if (value.docs.length != 0) {
           this.room = value.docs[0];
           getMessagesFromFirebase(this.room.id);
+
+          /// TODO subscribe topic
+          // userRepo.firebaseAPI.messaging
+          //     .subscribeToTopic(this.room.id)
+          //     .then((value) {
+          //   debugPrint("subscribeToTopic success ${this.room.id}");
+          // });
         } else {
           userRepo.firebaseAPI.getLatestRoom().then((value) {
             if (value != null && value.docs.length != 0) {
@@ -100,7 +87,32 @@ class ChatBloc extends BaseBloc {
       sendUser: userRepo.firebaseUser,
       content: content,
       time: DateTime.now(),
-      receiveUser: userRepo.receiveMessageUser,
     );
+  }
+
+  void onSendMessageButtonClick(String content) {
+    debugPrint("content is: $content");
+    // userRepo.firebaseAPI.createNotification(userRepo.firebaseUser.uid);
+    getChatRoom().then((room) {
+      addMessage(content).then((value) {
+        checkAddMessageReturnData(value);
+
+        if (value == MessageType.SENT) {
+          getChatRoom();
+          // getBloc()
+          //     .getMessagesFromFirebase(room.id);
+
+          /// TODO send push notification
+          userRepo.firebaseAPI.sendTopicPushNotification(
+              this.room.id, userRepo.firebaseUser.displayName, content);
+          // sendPushMessage(
+          //     "flNaheirQbCpXoTmx8DUYS:APA91bGLdm_8amCdd6AQxGDjFbL1nWepIMMtIKoK1NBAUsvWGTFKX20gC2HwM93kogGkwfE-ahVfFhtSn9Ck5-xXzgBWa8eLnhdhhgAnFSvhgMaLW7k-i5ug-83ENdavPUmxIISiugIc");
+        }
+      });
+    });
+  }
+
+  void listenToMessageChange() {
+    userRepo.firebaseAPI.listenToMessageChangeForNoti(userRepo.firebaseUser, 'chat screen');
   }
 }

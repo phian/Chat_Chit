@@ -7,9 +7,7 @@ import 'package:chat_chit/utils/extensions.dart';
 import 'package:chat_chit/widgets/padding_widgets.dart';
 import 'package:chat_chit/widgets/screen_content_container.dart';
 import 'package:chat_chit/widgets/text_widget.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'chat_bloc.dart';
 
@@ -27,25 +25,99 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
 
     _messageFieldController = TextEditingController();
     // debugPrint("user access token: ${getBloc().userRepo.facebookAPI.accessToken}");
-    getBloc().getChatRoom();
-    FirebaseFirestore.instance
-        .collection('messages')
-        .snapshots()
-        .listen((event) {
-      getBloc().getChatRoom();
-    });
+    if (this.mounted) {
+      getBloc().listenToMessageChange();
+      getBloc().userRepo.firebaseAPI.unSubscribeAllRoomTopic();
+
+      getBloc().getChatRoom().then((value) {
+        getBloc()
+            .userRepo
+            .firebaseAPI
+            .messaging
+            .subscribeToTopic(getBloc().room.id)
+            .then((value) {
+          debugPrint("subscribeToTopic success ${getBloc().room.id}");
+        });
+      });
+      getBloc()
+          .userRepo
+          .firebaseAPI
+          .getAllMessagesFromFirebase()
+          .listen((event) {
+        if (getBloc().userRepo.currentScreen.toLowerCase() == "chat screen") {}
+        getBloc().getChatRoom();
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppPalleteColor.PURPLE_COLOR,
-      body: Stack(
+    // getBloc().userRepo.firebaseAPI.createNotification(getBloc().userRepo.firebaseUser.uid);
+    return WillPopScope(
+      // ignore: missing_return
+      onWillPop: () async {
+        Navigator.pop(context, 'Back');
+      },
+      child: Scaffold(
+        appBar: _chatViewAppBar(),
+        backgroundColor: AppPalleteColor.PURPLE_COLOR,
+        body: Stack(
+          children: [
+            _chatMessageListView(),
+            _chatInputMessageTextField(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// AppBar
+  Widget _chatViewAppBar() {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0.0,
+      title: Row(
         children: [
-          _chatMessageListView(),
-          _chatInputMessageTextField(),
+          ClipRRect(
+            child: Image.network(
+                getBloc().userRepo.receiveMessageUser.profileImage),
+            borderRadius: BorderRadius.circular(90.0),
+          ),
+          Container(
+            margin: EdgeInsets.only(left: 15.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AppTextWidget(
+                  textContent: getBloc().userRepo.receiveMessageUser.lastName,
+                  fontSize: 18.0,
+                ),
+                Container(
+                  width: context.getScreenWidth(context) * 0.24,
+                  child: AppTextWidget(
+                    textMaxLine: 2,
+                    textContent: "Last access time...",
+                    fontSize: 15.0,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
+      actions: [
+        _appBarActionButton(Icons.phone),
+        _appBarActionButton(Icons.video_call),
+        _appBarActionButton(Icons.info),
+      ],
+    );
+  }
+
+  /// AppBar actions button
+  Widget _appBarActionButton(IconData icon) {
+    return IconButton(
+      icon: Icon(icon),
+      onPressed: () {},
     );
   }
 
@@ -68,23 +140,9 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
                   suffixIcon: IconButton(
                     icon: Icon(SendIcon.send),
                     onPressed: () {
-                      getBloc().userRepo.firebaseAPI.createNotification(
-                          getBloc().messaging,
-                          getBloc().userRepo.firebaseUser.uid);
-                      getBloc().getChatRoom().then((room) {
-                        getBloc()
-                            .addMessage(_messageFieldController.text)
-                            .then((value) {
-                          getBloc().checkAddMessageReturnData(value);
-
-                          if (value == MessageType.SENT) {
-                            getBloc().getChatRoom();
-                            // getBloc()
-                            //     .getMessagesFromFirebase(getBloc().room.id);
-                            _messageFieldController = TextEditingController();
-                          }
-                        });
-                      });
+                      getBloc().onSendMessageButtonClick(
+                          _messageFieldController.text);
+                      _messageFieldController = TextEditingController();
                     },
                   ),
                   hintText: "Enter message...",
@@ -116,7 +174,7 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
     return Align(
       alignment: Alignment.bottomCenter,
       child: CustomContainer(
-        height: context.getScreenHeight(context) * 0.8,
+        height: context.getScreenHeight(context) * 0.85,
         child: StreamBuilder(
           stream: getBloc().bhMsg,
           builder: (context, snapshot) {
@@ -168,10 +226,16 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
         }
       }(),
       child: Row(
-        mainAxisAlignment: type == MessageType.SENT ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: type == MessageType.SENT
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         children: [
-          type == MessageType.SENT ? _messageContent(model.content, type) : _profileImage(type),
-          type == MessageType.SENT ? _profileImage(type) : _messageContent(model.content, type),
+          type == MessageType.SENT
+              ? _messageContent(model.content, type)
+              : _profileImage(type),
+          type == MessageType.SENT
+              ? _profileImage(type)
+              : _messageContent(model.content, type),
         ],
       ),
     );
@@ -183,7 +247,7 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
       child: Image.network(
         type == MessageType.SENT
             ? getBloc().userRepo.firebaseUser.photoURL
-            : getBloc().userRepo.receiveMessageUser['profile_image'],
+            : getBloc().userRepo.receiveMessageUser.profileImage,
       ),
       borderRadius: BorderRadius.circular(90.0),
     );
@@ -192,7 +256,9 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
   /// Message content
   Widget _messageContent(String content, MessageType type) {
     return Container(
-      margin: type == MessageType.SENT ? EdgeInsets.only(right: 10.0) : EdgeInsets.only(left: 10.0),
+      margin: type == MessageType.SENT
+          ? EdgeInsets.only(right: 10.0)
+          : EdgeInsets.only(left: 10.0),
       alignment: Alignment.center,
       child: AppTextWidget(
         textContent: content,

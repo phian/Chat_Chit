@@ -61,6 +61,9 @@
 
                 <data android:scheme="@string/fb_login_protocol_scheme" />
             </intent-filter>
+
+            <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="@string/default_notification_channel_id"/>
+
         </activity>
 
         <!-- Don't delete the meta-data below.
@@ -69,7 +72,16 @@
             android:name="flutterEmbedding"
             android:value="2" />
 
+        <receiver android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+        <receiver android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+
     </application>
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <uses-permission android:name="android.permission.VIBRATE" />
 </manifest>
