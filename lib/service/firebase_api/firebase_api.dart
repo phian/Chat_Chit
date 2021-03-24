@@ -3,11 +3,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:chat_chit/constant/sns_constant/message_types.dart';
+import 'package:chat_chit/models/firebase_user_model.dart';
 import 'package:chat_chit/models/sns_models/facebook_user_model.dart';
 import 'package:chat_chit/utils/device_utils.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -17,18 +19,35 @@ import 'package:http/http.dart' as http;
 
 class FirebaseAPI {
   FirebaseMessaging messaging = FirebaseMessaging();
+  FirebaseStorage storage;
+  User firebaseUser;
+  List<FirebaseUserModel> allUserImagePaths;
 
   FirebaseAPI() {
     messaging = FirebaseMessaging();
+    allUserImagePaths = [];
   }
 
-  Stream<QuerySnapshot> getAllUserFromFirebase() {
+  /// Get user
+  Stream<QuerySnapshot> getAllUserFromFirebaseStream() {
     return FirebaseFirestore.instance.collection("members").snapshots();
   }
 
-  /// Temp
-  Stream<QuerySnapshot> getAllMessagesFromFirebase() {
+  Future<QuerySnapshot> getAllUserFromFirebaseFuture() async {
+    return FirebaseFirestore.instance.collection('members').get();
+  }
+
+  Future<DocumentSnapshot> getUserFromFirebase(String userId) async {
+    return FirebaseFirestore.instance.collection('members').doc(userId).get();
+  }
+
+  /// Get messages
+  Stream<QuerySnapshot> getAllMessagesFromFirebaseStream() {
     return FirebaseFirestore.instance.collection("messages").snapshots();
+  }
+
+  Future<QuerySnapshot> getAllMessagesFromFirebaseFuture() async {
+    return FirebaseFirestore.instance.collection("messages").get();
   }
 
   Stream<QuerySnapshot> getAllMessageFromFirebaseByTime() {
@@ -215,7 +234,8 @@ class FirebaseAPI {
   }
 
   /// Notification
-  void createNotification(String currentUserId, QuerySnapshot messages, String currentScreen) {
+  void createNotification(
+      String currentUserId, QuerySnapshot messages, String currentScreen) {
     requestUserPermission();
     configureMessaging(currentUserId, messages, currentScreen);
   }
@@ -231,18 +251,20 @@ class FirebaseAPI {
     );
   }
 
-  void configureMessaging(String sendUserId, QuerySnapshot messages, String currentScreen) {
+  void configureMessaging(
+      String sendUserId, QuerySnapshot messages, String currentScreen) {
     messaging.configure(
       onMessage: (Map<String, dynamic> message) {
         print('onMessage: $message');
-          if (messages.docs.first['send_user_id'] != sendUserId && currentScreen.toLowerCase() != 'chat screen') {
-            debugPrint("current screen: $currentScreen");
-            Platform.isAndroid
-                ? showNotification(
-                    message['notification'], messages.docs.first['content'])
-                : showNotification(
-                    message['aps']['alert'], messages.docs.first['content']);
-          }
+        if (messages.docs.first['send_user_id'] != sendUserId &&
+            currentScreen.toLowerCase() != 'chat screen') {
+          debugPrint("current screen: $currentScreen");
+          Platform.isAndroid
+              ? showNotification(
+                  message['notification'], messages.docs.first['content'])
+              : showNotification(
+                  message['aps']['alert'], messages.docs.first['content']);
+        }
 
         // Platform.isAndroid
         //     ? showNotification(message['notification'])
@@ -358,7 +380,7 @@ class FirebaseAPI {
         headers: <String, String>{
           'Content-Type': 'application/json',
           'Authorization':
-              'Bearer ya29.a0AfH6SMAe4AGTsOJB2zYhbGTS87Eveamfbvnu-5FL8oouBeCEj85PMWxy_BijmY8D3a-f6ZHzyE4aB5EvCpUebmCb35HsF1uZ7BcOSC6LQNJQHuH8rwuZu3m4k_3ArbWFreOyMvRHgCjyewPiQE0YCsTJUtBv',
+              'Bearer ya29.a0AfH6SMDIZdOxTfD7vn2lkPyKsw-2GyrP0ujoe_rKL60ZWlwI3_vbu17Hg2bgm0UDu-UPpMKRMqrUnZyM6v3ZZQrarRkrudjEGtumpzuIstE-RHv_3j7_4Z4ME3qBSlugvho-11GNSG6ldWo1hfB8ZSHLRtHD',
         },
         body: jsonEncode({
           'message': {
@@ -392,7 +414,7 @@ class FirebaseAPI {
         headers: <String, String>{
           'Content-Type': 'application/json',
           'Authorization':
-              'Bearer ya29.a0AfH6SMAe4AGTsOJB2zYhbGTS87Eveamfbvnu-5FL8oouBeCEj85PMWxy_BijmY8D3a-f6ZHzyE4aB5EvCpUebmCb35HsF1uZ7BcOSC6LQNJQHuH8rwuZu3m4k_3ArbWFreOyMvRHgCjyewPiQE0YCsTJUtBv',
+              'Bearer ya29.a0AfH6SMDIZdOxTfD7vn2lkPyKsw-2GyrP0ujoe_rKL60ZWlwI3_vbu17Hg2bgm0UDu-UPpMKRMqrUnZyM6v3ZZQrarRkrudjEGtumpzuIstE-RHv_3j7_4Z4ME3qBSlugvho-11GNSG6ldWo1hfB8ZSHLRtHD',
         },
         body: constructFCMPayload(fcmToken, sendUserName, content),
       );
@@ -411,6 +433,51 @@ class FirebaseAPI {
           'title': sendUserName,
           'body': content,
         },
+      }
+    });
+  }
+
+  /// Update profile image
+  Future<String> uploadNewProfileImage(File imageFile) async {
+    storage = FirebaseStorage.instance;
+
+    //Create a reference to the location you want to upload to in firebase
+    Reference reference =
+        storage.ref().child("Chat Chit/camera_image_${DateTime.now()}");
+
+    // Upload the file to firebase
+    var uploadTask = reference.putFile(imageFile);
+    var storageSnapshot = await uploadTask.whenComplete(() {});
+
+    // Waits till the file is uploaded then stores the download url
+    String location = await storageSnapshot.ref.getDownloadURL();
+
+    await updateUserProfileImage(location);
+    // debugPrint("Save Uri: $location");
+
+    return location;
+  }
+
+  Future<void> updateUserProfileImage(String imageLocation) async {
+    FirebaseFirestore.instance
+        .collection("members")
+        .doc(firebaseUser.uid)
+        .update({
+      'profile_image': imageLocation,
+    });
+  }
+
+  void updateAllUserCurrentImagePath() async {
+    await getAllUserFromFirebaseFuture().then((value) {
+      if (value != null) {
+        for (int i = 0; i < value.docs.length; i++) {
+          debugPrint("id: ${value.docs[i].id}");
+          allUserImagePaths.add(
+            FirebaseUserModel.fromJson(
+              value.docs[i].data(),
+            ),
+          );
+        }
       }
     });
   }

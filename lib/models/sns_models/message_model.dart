@@ -6,7 +6,7 @@ class MessageModel {
 
   MessageModel.fromJson(Map<String, dynamic> json) {
     this.content = json['content'];
-    this.messageTime = DateTime.fromMillisecondsSinceEpoch(int.parse(json['message_time'].toString()) ?? 0);
+    this.messageTime = DateTime.fromMillisecondsSinceEpoch(int.tryParse(json['message_time'].toString()) ?? 0);
     this.roomId = json['room_id'];
     this.sendUserId = json['send_user_id'];
   }

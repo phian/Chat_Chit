@@ -9,7 +9,6 @@ class UserRepo {
   final SharedPreferenceService sharedPreferenceService;
   final FirebaseAPI firebaseAPI;
   final FacebookAPI facebookAPI;
-  User firebaseUser;
   FacebookUserModel receiveMessageUser;
   String currentScreen;
 
@@ -18,8 +17,12 @@ class UserRepo {
   }
 
   void updateFirebaseUser(User user) {
-    this.firebaseUser = firebaseUser;
+    firebaseAPI.firebaseUser = user;
   }
 
-  UserRepo({@required this.sharedPreferenceService, this.firebaseAPI, this.facebookAPI});
+  UserRepo({
+    @required this.sharedPreferenceService,
+    this.firebaseAPI,
+    this.facebookAPI,
+  });
 }

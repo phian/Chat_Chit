@@ -26,7 +26,7 @@ class SplashBloc extends BaseBloc {
     return await userRepo.firebaseAPI
         .getFacebookUserFromFireBase(userRepo.facebookAPI.accessToken)
         .then((value) {
-      if (value != null) userRepo.firebaseUser = value;
+      if (value != null) userRepo.firebaseAPI.firebaseUser = value;
     });
   }
 
@@ -42,6 +42,7 @@ class SplashBloc extends BaseBloc {
             // debugPrint("Passed here");
             userRepo.facebookAPI.facebookLogin().then((value) async {
               if (value == UserStates.LOGGED_IN) {
+                userRepo.firebaseAPI.updateAllUserCurrentImagePath();
                 updateUserState(UserStates.LOGGED_IN);
                 DeviceUtils.getDeviceId().then((value) {
                   if (value != null) {
@@ -71,10 +72,11 @@ class SplashBloc extends BaseBloc {
   Future<void> checkAndUpdateUser() async {
     await userRepo.firebaseAPI
         .getFacebookUserFromFireBase(userRepo.facebookAPI.accessToken)
-        .then((value) {
-      if (value != null) {
-        userRepo.firebaseAPI.checkAndUpdateUser(value).then((value) {
-          userRepo.firebaseAPI.updateUserToken(userRepo.firebaseUser.uid);
+        .then((user) {
+      if (user != null) {
+        userRepo.firebaseAPI.checkAndUpdateUser(user).then((user) {
+          userRepo.firebaseAPI
+              .updateUserToken(userRepo.firebaseAPI.firebaseUser.uid);
         });
       }
     });

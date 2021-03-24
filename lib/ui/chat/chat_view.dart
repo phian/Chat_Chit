@@ -4,10 +4,12 @@ import 'package:chat_chit/constant/sns_constant/message_types.dart';
 import 'package:chat_chit/models/sns_models/message_model.dart';
 import 'package:chat_chit/presentation/send_icon.dart';
 import 'package:chat_chit/utils/extensions.dart';
+import 'package:chat_chit/widgets/loading.dart';
 import 'package:chat_chit/widgets/padding_widgets.dart';
 import 'package:chat_chit/widgets/screen_content_container.dart';
 import 'package:chat_chit/widgets/text_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_link_preview/flutter_link_preview.dart';
 
 import 'chat_bloc.dart';
 
@@ -42,17 +44,16 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
       getBloc()
           .userRepo
           .firebaseAPI
-          .getAllMessagesFromFirebase()
+          .getAllMessagesFromFirebaseStream()
           .listen((event) {
-        if (getBloc().userRepo.currentScreen.toLowerCase() == "chat screen") {}
-        getBloc().getChatRoom();
+        if (getBloc().userRepo.currentScreen.toLowerCase() == "chat screen")
+          getBloc().getChatRoom();
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // getBloc().userRepo.firebaseAPI.createNotification(getBloc().userRepo.firebaseUser.uid);
     return WillPopScope(
       // ignore: missing_return
       onWillPop: () async {
@@ -179,7 +180,7 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
           stream: getBloc().bhMsg,
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
-              return Container();
+              return LoadingWidget(value: 100);
             }
             return AppPaddingWidget(
               paddingBottom: context.getScreenHeight(context) * 0.1,
@@ -191,14 +192,28 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
                 itemBuilder: (context, index) {
                   return _messageBox(
                     type: (snapshot.data[index] as MessageModel).sendUserId ==
-                            getBloc().userRepo.firebaseUser.uid
+                            getBloc().userRepo.firebaseAPI.firebaseUser.uid
                         ? MessageType.SENT
                         : MessageType.RECEIVED,
                     model: snapshot.data[index],
+                    canDisplay: getBloc().checkTimeToDisplayUserAvatar(
+                      index: index,
+                      snapshot: snapshot,
+                    ),
+                    isSeparate: getBloc().checkTimeToDisplaySeparateDateText(
+                      index: index,
+                      snapshot: snapshot,
+                    ),
+                    date: getBloc().getDisplayDateTimeText(
+                      index: index,
+                      snapshot: snapshot,
+                    ),
+                    index: index,
+                    maxLength: snapshot.data.length,
                   );
                 },
                 separatorBuilder: (context, index) {
-                  return SizedBox(height: 10.0);
+                  return SizedBox(height: 2.0);
                 },
                 itemCount: snapshot.data.length,
                 reverse: true,
@@ -215,41 +230,60 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
   Widget _messageBox({
     MessageType type,
     MessageModel model,
+    bool canDisplay,
+    bool isSeparate,
+    String date,
+    int index,
+    int maxLength,
   }) {
-    return Align(
-      alignment: () {
-        switch (type) {
-          case MessageType.SENT:
-            return Alignment.centerRight;
-          default:
-            return Alignment.centerLeft;
-        }
-      }(),
-      child: Row(
-        mainAxisAlignment: type == MessageType.SENT
-            ? MainAxisAlignment.end
-            : MainAxisAlignment.start,
-        children: [
-          type == MessageType.SENT
-              ? _messageContent(model.content, type)
-              : _profileImage(type),
-          type == MessageType.SENT
-              ? _profileImage(type)
-              : _messageContent(model.content, type),
-        ],
-      ),
+    return Column(
+      children: [
+        isSeparate
+            ? Container(
+                margin: EdgeInsets.only(
+                    top: index != maxLength - 1 ? 30.0 : 0.0, bottom: 10.0),
+                child: Text(date),
+              )
+            : Container(),
+        Align(
+          alignment: () {
+            switch (type) {
+              case MessageType.SENT:
+                return Alignment.centerRight;
+              default:
+                return Alignment.centerLeft;
+            }
+          }(),
+          child: Row(
+            mainAxisAlignment: type == MessageType.SENT
+                ? MainAxisAlignment.end
+                : MainAxisAlignment.start,
+            children: [
+              type == MessageType.SENT
+                  ? _messageContent(model.content, type)
+                  : _profileImage(type, canDisplay: canDisplay),
+              type == MessageType.SENT
+                  ? _profileImage(type, canDisplay: canDisplay)
+                  : _messageContent(model.content, type),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
   /// Profile image
-  Widget _profileImage(MessageType type) {
-    return ClipRRect(
-      child: Image.network(
-        type == MessageType.SENT
-            ? getBloc().userRepo.firebaseUser.photoURL
-            : getBloc().userRepo.receiveMessageUser.profileImage,
+  Widget _profileImage(MessageType type, {bool canDisplay}) {
+    return Opacity(
+      opacity: canDisplay ? 1.0 : 0.0,
+      child: ClipRRect(
+        child: Image.network(
+          type == MessageType.SENT
+              ? getBloc().userRepo.firebaseAPI.firebaseUser.photoURL
+              : getBloc().userRepo.receiveMessageUser.profileImage,
+        ),
+        borderRadius: BorderRadius.circular(90.0),
       ),
-      borderRadius: BorderRadius.circular(90.0),
     );
   }
 
@@ -260,11 +294,34 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
           ? EdgeInsets.only(right: 10.0)
           : EdgeInsets.only(left: 10.0),
       alignment: Alignment.center,
-      child: AppTextWidget(
-        textContent: content,
-      ),
-      width: 100.0,
-      height: 60.0,
+      child: getBloc().checkIfTextIsWebLink(content) == false
+          ? AppTextWidget(
+              textContent: content,
+            )
+          : FlutterLinkPreview(
+              url: content,
+              titleStyle: TextStyle(
+                color: Colors.blue,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+      width: () {
+        if (getBloc().checkIfTextIsWebLink(content)) {
+          return context.getScreenWidth(context) - 80;
+        } else {
+          return (content.length * 5.0 + 30) < context.getScreenWidth(context)
+              ? (content.length * 5.0 + 30)
+              : (context.getScreenWidth(context) - 80);
+        }
+      }(),
+      height: () {
+        if (getBloc().checkIfTextIsWebLink(content)) {
+        } else {
+          return content.length > 45.0
+              ? (content.length / 45.0) * 20.0 + 20.0
+              : 50.0;
+        }
+      }(),
       decoration: BoxDecoration(
         color: Colors.grey,
         borderRadius: BorderRadius.circular(

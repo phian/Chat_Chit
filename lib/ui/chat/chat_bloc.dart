@@ -39,7 +39,7 @@ class ChatBloc extends BaseBloc {
   Future<void> getChatRoom() async {
     await userRepo.firebaseAPI
         .getChatRoomFromFirebase(
-            userRepo.firebaseUser, userRepo.receiveMessageUser, true)
+            userRepo.firebaseAPI.firebaseUser, userRepo.receiveMessageUser, true)
         .then((value) {
       if (value != null) {
         if (value.docs.length != 0) {
@@ -84,7 +84,7 @@ class ChatBloc extends BaseBloc {
   Future<MessageType> addMessage(String content) async {
     return await userRepo.firebaseAPI.addMessage(
       roomId: room.id,
-      sendUser: userRepo.firebaseUser,
+      sendUser: userRepo.firebaseAPI.firebaseUser,
       content: content,
       time: DateTime.now(),
     );
@@ -104,7 +104,7 @@ class ChatBloc extends BaseBloc {
 
           /// TODO send push notification
           userRepo.firebaseAPI.sendTopicPushNotification(
-              this.room.id, userRepo.firebaseUser.displayName, content);
+              this.room.id, userRepo.firebaseAPI.firebaseUser.displayName, content);
           // sendPushMessage(
           //     "flNaheirQbCpXoTmx8DUYS:APA91bGLdm_8amCdd6AQxGDjFbL1nWepIMMtIKoK1NBAUsvWGTFKX20gC2HwM93kogGkwfE-ahVfFhtSn9Ck5-xXzgBWa8eLnhdhhgAnFSvhgMaLW7k-i5ug-83ENdavPUmxIISiugIc");
         }
@@ -113,6 +113,83 @@ class ChatBloc extends BaseBloc {
   }
 
   void listenToMessageChange() {
-    userRepo.firebaseAPI.listenToMessageChangeForNoti(userRepo.firebaseUser, 'chat screen');
+    userRepo.firebaseAPI
+        .listenToMessageChangeForNoti(userRepo.firebaseAPI.firebaseUser, 'chat screen');
+  }
+
+  bool checkTimeToDisplayUserAvatar({
+    int index,
+    AsyncSnapshot<dynamic> snapshot,
+  }) {
+    if (snapshot.data.length == 1)
+      return true;
+    else {
+      if (index == 0) {
+        return true; // Reverse list
+      } else {
+        if ((snapshot.data[index] as MessageModel).sendUserId ==
+            (snapshot.data[index - 1] as MessageModel).sendUserId) {
+          if ((snapshot.data[index] as MessageModel)
+                  .messageTime
+                  .difference(
+                      (snapshot.data[index - 1] as MessageModel).messageTime)
+                  .inMinutes <
+              5) {
+            return false;
+          } else
+            return true;
+        } else {
+          return true;
+        }
+      }
+    }
+  }
+
+  bool checkTimeToDisplaySeparateDateText({
+    int index,
+    AsyncSnapshot<dynamic> snapshot,
+  }) {
+    if (snapshot.data.length == 1)
+      return true;
+    else {
+      if (index == snapshot.data.length - 1) {
+        return true; // Reverse list
+      }
+      if (index == 0) {
+        if ((snapshot.data[index] as MessageModel)
+                .messageTime
+                .difference(
+                    (snapshot.data[index + 1] as MessageModel).messageTime)
+                .inMinutes <
+            5) {
+          return false;
+        } else {
+          return true;
+        }
+      } else {
+        if ((snapshot.data[index] as MessageModel)
+                .messageTime
+                .difference(
+                    (snapshot.data[index + 1] as MessageModel).messageTime)
+                .inMinutes <
+            5) {
+          return false;
+        } else
+          return true;
+      }
+    }
+  }
+
+  String getDisplayDateTimeText({
+    int index,
+    AsyncSnapshot<dynamic> snapshot,
+  }) {
+    return "${(snapshot.data[index] as MessageModel).messageTime.hour}:${(snapshot.data[index] as MessageModel).messageTime.minute}:${(snapshot.data[index] as MessageModel).messageTime.second} "
+        "- "
+        "${(snapshot.data[index] as MessageModel).messageTime.day}/${(snapshot.data[index] as MessageModel).messageTime.month}/${(snapshot.data[index] as MessageModel).messageTime.year}";
+  }
+
+  bool checkIfTextIsWebLink(String text) {
+    return Uri.parse(text).isAbsolute;
   }
 }

@@ -3,10 +3,12 @@ import 'package:chat_chit/constant/app_color.dart';
 import 'package:chat_chit/models/sns_models/facebook_user_model.dart';
 import 'package:chat_chit/ui/messages/messages_bloc.dart';
 import 'package:chat_chit/utils/extensions.dart';
+import 'package:chat_chit/widgets/loading.dart';
 import 'package:chat_chit/widgets/padding_widgets.dart';
 import 'package:chat_chit/widgets/screen_content_container.dart';
 import 'package:chat_chit/widgets/text_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class MessagesView extends StatefulWidget {
   @override
@@ -49,12 +51,21 @@ class _MessagesViewState extends BaseStateBloc<MessagesView, MessagesBloc> {
         children: [
           Container(
             transform: Matrix4.translationValues(15.0, 0.0, 0.0),
-            child: ClipRRect(
-              child: Image.network(
-                getBloc().userRepo.firebaseUser.photoURL,
-                fit: BoxFit.contain,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(10.0),
+              onTap: () => _getImageChoiceDialog(),
+              child: StreamBuilder(
+                stream: getBloc().updateImageStream,
+                builder: (context, snapshot) {
+                  return ClipRRect(
+                    child: Image.network(
+                      snapshot.data,
+                      fit: BoxFit.contain,
+                    ),
+                    borderRadius: BorderRadius.circular(90.0),
+                  );
+                },
               ),
-              borderRadius: BorderRadius.circular(90.0),
             ),
           ),
         ],
@@ -126,8 +137,8 @@ class _MessagesViewState extends BaseStateBloc<MessagesView, MessagesBloc> {
             stream: getBloc().getMessageStream,
             builder: (context, snapshot) {
               if (!snapshot.hasData) {
-                return Center(
-                  child: AppTextWidget(textContent: "Loading..."),
+                return LoadingWidget(
+                  value: 100,
                 );
               }
 
@@ -137,7 +148,7 @@ class _MessagesViewState extends BaseStateBloc<MessagesView, MessagesBloc> {
                   parent: BouncingScrollPhysics(),
                 ),
                 itemBuilder: (context, index) {
-                  return (getBloc().userRepo.firebaseUser.uid !=
+                  return (getBloc().userRepo.firebaseAPI.firebaseUser.uid !=
                           (snapshot.data[index] as FacebookUserModel).id)
                       ? _messageDisplayWidget(
                           user: snapshot.data[index],
@@ -236,6 +247,56 @@ class _MessagesViewState extends BaseStateBloc<MessagesView, MessagesBloc> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _getImageChoiceDialog() async {
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppPalleteColor.WHITE_COLOR,
+              borderRadius: BorderRadius.circular(10.0),
+            ),
+            width: context.getScreenWidth(context) * 0.5,
+            height: context.getScreenHeight(context) * 0.2,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AppTextWidget(
+                  textContent: "Choose an action you want?",
+                  fontSize: 20.0,
+                  fontWeight: FontWeight.bold,
+                ),
+                AppPaddingWidget(
+                  paddingTop: 10.0,
+                  child: FlatButton(
+                    color: AppPalleteColor.BLUE_COLOR,
+                    onPressed: () =>
+                        getBloc().getAndSaveImageIfCan(ImageSource.camera),
+                    child: AppTextWidget(
+                      textContent: "Camera",
+                      textColor: AppPalleteColor.WHITE_COLOR,
+                    ),
+                  ),
+                ),
+                FlatButton(
+                  onPressed: () =>
+                      getBloc().getAndSaveImageIfCan(ImageSource.gallery),
+                  color: AppPalleteColor.PURPLE_COLOR,
+                  child: AppTextWidget(
+                    textContent: "Device",
+                    textColor: AppPalleteColor.WHITE_COLOR,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
