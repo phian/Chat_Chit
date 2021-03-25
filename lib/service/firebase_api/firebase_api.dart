@@ -22,10 +22,12 @@ class FirebaseAPI {
   FirebaseStorage storage;
   User firebaseUser;
   List<FirebaseUserModel> allUserImagePaths;
+  List<FacebookUserModel> allUserLastMessages;
 
   FirebaseAPI() {
     messaging = FirebaseMessaging();
     allUserImagePaths = [];
+    allUserLastMessages = [];
   }
 
   /// Get user
@@ -112,13 +114,17 @@ class FirebaseAPI {
     return FirebaseFirestore.instance.collection('room').snapshots().last;
   }
 
-  Future<QuerySnapshot> getAllChatRoomFromFirebase() async {
+  Future<QuerySnapshot> getAllChatRoomFromFirebaseFuture() async {
     return FirebaseFirestore.instance.collection('room').get();
+  }
+
+  Stream<QuerySnapshot> getAllChatRoomFromFirebaseStream() {
+    return FirebaseFirestore.instance.collection('room').snapshots();
   }
 
   void subscribeAllRoomTopic() async {
     debugPrint("Subscribe to chat rooms");
-    await getAllChatRoomFromFirebase().then((value) {
+    await getAllChatRoomFromFirebaseFuture().then((value) {
       if (value != null && value.docs.length != 0) {
         for (int i = 0; i < value.docs.length; i++) {
           messaging.subscribeToTopic(value.docs[i].id);
@@ -128,7 +134,7 @@ class FirebaseAPI {
   }
 
   void unSubscribeAllRoomTopic() async {
-    await getAllChatRoomFromFirebase().then((value) {
+    await getAllChatRoomFromFirebaseFuture().then((value) {
       if (value != null && value.docs.length != 0) {
         for (int i = 0; i < value.docs.length; i++) {
           messaging.unsubscribeFromTopic(value.docs[i].id);
@@ -193,6 +199,7 @@ class FirebaseAPI {
     return await FirebaseFirestore.instance
         .collection('messages')
         .where('room_id', isEqualTo: roomId)
+        .orderBy('message_time', descending: true)
         .get();
   }
 
@@ -380,7 +387,7 @@ class FirebaseAPI {
         headers: <String, String>{
           'Content-Type': 'application/json',
           'Authorization':
-              'Bearer ya29.a0AfH6SMDIZdOxTfD7vn2lkPyKsw-2GyrP0ujoe_rKL60ZWlwI3_vbu17Hg2bgm0UDu-UPpMKRMqrUnZyM6v3ZZQrarRkrudjEGtumpzuIstE-RHv_3j7_4Z4ME3qBSlugvho-11GNSG6ldWo1hfB8ZSHLRtHD',
+              'Bearer ya29.a0AfH6SMDxozjGmCavj3h0t5ZusmBS1HiSxh-lzMAAB3ZJhk8geA5LLuiQ1lu7d7kNMeSNOYr2skIFfgjhaJSxbWBaIBVZCZvmOybWpi--DKFUi0DQ1omFy9RVSTb837MoYxbpjjkOwv04ZyoYBJVkv2p78ahc',
         },
         body: jsonEncode({
           'message': {
@@ -414,7 +421,7 @@ class FirebaseAPI {
         headers: <String, String>{
           'Content-Type': 'application/json',
           'Authorization':
-              'Bearer ya29.a0AfH6SMDIZdOxTfD7vn2lkPyKsw-2GyrP0ujoe_rKL60ZWlwI3_vbu17Hg2bgm0UDu-UPpMKRMqrUnZyM6v3ZZQrarRkrudjEGtumpzuIstE-RHv_3j7_4Z4ME3qBSlugvho-11GNSG6ldWo1hfB8ZSHLRtHD',
+              'Bearer ya29.a0AfH6SMDxozjGmCavj3h0t5ZusmBS1HiSxh-lzMAAB3ZJhk8geA5LLuiQ1lu7d7kNMeSNOYr2skIFfgjhaJSxbWBaIBVZCZvmOybWpi--DKFUi0DQ1omFy9RVSTb837MoYxbpjjkOwv04ZyoYBJVkv2p78ahc',
         },
         body: constructFCMPayload(fcmToken, sendUserName, content),
       );
@@ -477,6 +484,44 @@ class FirebaseAPI {
               value.docs[i].data(),
             ),
           );
+        }
+      }
+    });
+  }
+
+  Future<void> getAllUserLastMessages() async {
+    await getAllUserFromFirebaseFuture().then((users) async {
+      if (users != null && users.docs.length != 0) {
+        for (int i = 0; i < users.docs.length; i++) {
+          await getChatRoomFromFirebase(
+            firebaseUser,
+            FacebookUserModel(id: users.docs[i].id),
+            false,
+          ).then((room) async {
+            if (room != null && room.docs.length != 0) {
+              await getLastMessageFromFirebase(room.docs[0].id).then((message) {
+                if (message != null && message.docs.length != 0) {
+                  bool isContain = false;
+                  for (int i = 0; i < allUserLastMessages.length; i++) {
+                    if (allUserLastMessages[i].lastMessage ==
+                            message.docs[0]['content'] &&
+                        allUserLastMessages[i]
+                            .id
+                            .contains(firebaseUser.uid + users.docs[i].id)) {
+                      isContain = true;
+                    }
+                  }
+                  if (isContain == false)
+                    allUserLastMessages.add(
+                      FacebookUserModel(
+                        id: firebaseUser.uid + users.docs[i].id,
+                        lastMessage: message.docs[0]['content'],
+                      ),
+                    );
+                }
+              });
+            }
+          });
         }
       }
     });

@@ -73,6 +73,8 @@ class ChatBloc extends BaseBloc {
         });
 
         bhMsg.add(models);
+      } else {
+        bhMsg.add([]);
       }
     }).catchError((e) {
       debugPrint(e.toString());

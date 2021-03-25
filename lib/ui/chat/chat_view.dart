@@ -79,10 +79,15 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
       elevation: 0.0,
       title: Row(
         children: [
-          ClipRRect(
-            child: Image.network(
-                getBloc().userRepo.receiveMessageUser.profileImage),
-            borderRadius: BorderRadius.circular(90.0),
+          Container(
+            width: 56.0,
+            height: 56.0,
+            child: ClipRRect(
+              child: Image.network(
+                getBloc().userRepo.receiveMessageUser.profileImage,
+              ),
+              borderRadius: BorderRadius.circular(90.0),
+            ),
           ),
           Container(
             margin: EdgeInsets.only(left: 15.0),
@@ -94,11 +99,11 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
                   fontSize: 18.0,
                 ),
                 Container(
-                  width: context.getScreenWidth(context) * 0.24,
+                  width: context.getScreenWidth(context) * 0.22,
                   child: AppTextWidget(
                     textMaxLine: 2,
                     textContent: "Last access time...",
-                    fontSize: 15.0,
+                    fontSize: 13.0,
                   ),
                 ),
               ],
@@ -181,7 +186,10 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
           builder: (context, snapshot) {
             if (!snapshot.hasData) {
               return LoadingWidget(value: 100);
+            } else if (snapshot.data.length == 1 && snapshot.data[0] == null) {
+              return Container();
             }
+
             return AppPaddingWidget(
               paddingBottom: context.getScreenHeight(context) * 0.1,
               child: ListView.separated(
@@ -213,7 +221,7 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
                   );
                 },
                 separatorBuilder: (context, index) {
-                  return SizedBox(height: 2.0);
+                  return SizedBox(height: 5.0);
                 },
                 itemCount: snapshot.data.length,
                 reverse: true,
@@ -276,13 +284,30 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
   Widget _profileImage(MessageType type, {bool canDisplay}) {
     return Opacity(
       opacity: canDisplay ? 1.0 : 0.0,
-      child: ClipRRect(
-        child: Image.network(
-          type == MessageType.SENT
-              ? getBloc().userRepo.firebaseAPI.firebaseUser.photoURL
-              : getBloc().userRepo.receiveMessageUser.profileImage,
+      child: Container(
+        width: 50.0,
+        height: 50.0,
+        child: ClipRRect(
+          child: Image.network(
+            type == MessageType.SENT
+                ? getBloc()
+                    .userRepo
+                    .firebaseAPI
+                    .allUserImagePaths
+                    .singleWhere((element) =>
+                        element.id ==
+                        getBloc().userRepo.firebaseAPI.firebaseUser.uid)
+                    .profileImage
+                : getBloc()
+                    .userRepo
+                    .firebaseAPI
+                    .allUserImagePaths
+                    .singleWhere((element) =>
+                        element.id == getBloc().userRepo.receiveMessageUser.id)
+                    .profileImage,
+          ),
+          borderRadius: BorderRadius.circular(90.0),
         ),
-        borderRadius: BorderRadius.circular(90.0),
       ),
     );
   }

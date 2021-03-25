@@ -43,6 +43,7 @@ class SplashBloc extends BaseBloc {
             userRepo.facebookAPI.facebookLogin().then((value) async {
               if (value == UserStates.LOGGED_IN) {
                 userRepo.firebaseAPI.updateAllUserCurrentImagePath();
+                userRepo.firebaseAPI.getAllUserLastMessages();
                 updateUserState(UserStates.LOGGED_IN);
                 DeviceUtils.getDeviceId().then((value) {
                   if (value != null) {

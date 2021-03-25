@@ -22,7 +22,13 @@ class _MessagesViewState extends BaseStateBloc<MessagesView, MessagesBloc> {
   void initState() {
     super.initState();
 
-    getBloc().getAllLastMessageForUsers();
+    getBloc()
+        .userRepo
+        .firebaseAPI
+        .getAllMessagesFromFirebaseStream()
+        .listen((event) {
+      getBloc().getAllLastMessageForUsers();
+    });
     getBloc().listenToMessageChange();
     getBloc().userRepo.firebaseAPI.subscribeAllRoomTopic();
   }
@@ -275,8 +281,10 @@ class _MessagesViewState extends BaseStateBloc<MessagesView, MessagesBloc> {
                   paddingTop: 10.0,
                   child: FlatButton(
                     color: AppPalleteColor.BLUE_COLOR,
-                    onPressed: () =>
-                        getBloc().getAndSaveImageIfCan(ImageSource.camera),
+                    onPressed: () {
+                      Navigator.pop(context);
+                      getBloc().getAndSaveImageIfCan(ImageSource.camera);
+                    },
                     child: AppTextWidget(
                       textContent: "Camera",
                       textColor: AppPalleteColor.WHITE_COLOR,
@@ -284,8 +292,10 @@ class _MessagesViewState extends BaseStateBloc<MessagesView, MessagesBloc> {
                   ),
                 ),
                 FlatButton(
-                  onPressed: () =>
-                      getBloc().getAndSaveImageIfCan(ImageSource.gallery),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    getBloc().getAndSaveImageIfCan(ImageSource.gallery);
+                  },
                   color: AppPalleteColor.PURPLE_COLOR,
                   child: AppTextWidget(
                     textContent: "Device",

@@ -44,10 +44,8 @@ class MessagesBloc extends BaseBloc {
       ),
     );
 
-    if (result != null) {
-      resetCurrentScreen();
-      checkResultData();
-    }
+    resetCurrentScreen();
+    checkResultData();
 
     debugPrint("Result: $result");
   }
@@ -75,36 +73,40 @@ class MessagesBloc extends BaseBloc {
     });
   }
 
-  void getAllLastMessageForUsers() {
-    userRepo.firebaseAPI.getAllUserFromFirebaseStream().listen((event) {
-      users = [];
-      for (int i = 0; i < event.docs.length; i++) {
-        users.add(
-          FacebookUserModel(
-            name: event.docs[i]['name'],
-            profileImage: event.docs[i]['profile_image'],
-            id: event.docs[i].id,
-            lastName: event.docs[i]['last_name'],
-          ),
-        );
+  void getAllLastMessageForUsers() async {
+    userRepo.firebaseAPI.getAllUserLastMessages().then((value) {
+      userRepo.firebaseAPI.getAllUserFromFirebaseStream().listen((event) {
+        users = [];
+        for (int i = 0; i < event.docs.length; i++) {
+          users.add(
+            FacebookUserModel(
+              name: event.docs[i]['name'],
+              profileImage: event.docs[i]['profile_image'],
+              id: event.docs[i].id,
+              lastName: event.docs[i]['last_name'],
+            ),
+          );
+        }
 
-        userRepo.firebaseAPI
-            .getChatRoomFromFirebase(
-                userRepo.firebaseAPI.firebaseUser, users[i], false)
-            .then((value) {
-          if (value != null && value.docs.length != 0) {
-            userRepo.firebaseAPI
-                .getLastMessageFromFirebase(value.docs[0].id)
-                .then((value) {
-              if (value != null && value.docs.length != 0) {
-                users[users.length - 1].lastMessage = value.docs[0]['content'];
-              }
-            });
+        for (int i = 0; i < users.length; i++) {
+          debugPrint("user id: ${users[i].id}");
+          debugPrint(
+              "last message length: ${userRepo.firebaseAPI.allUserLastMessages.length}");
+          for (int j = 0;
+              j < userRepo.firebaseAPI.allUserLastMessages.length;
+              j++) {
+            debugPrint(
+                "last message id: ${userRepo.firebaseAPI.allUserLastMessages[j].id}");
+            if (userRepo.firebaseAPI.allUserLastMessages[j].id
+                .contains(users[i].id)) {
+              users[i].lastMessage =
+                  userRepo.firebaseAPI.allUserLastMessages[j].lastMessage;
+            }
           }
-        });
-      }
+        }
 
-      getMessageStream.add(users);
+        getMessageStream.add(users);
+      });
     });
   }
 
