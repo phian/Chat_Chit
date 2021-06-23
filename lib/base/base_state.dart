@@ -1,8 +1,5 @@
-import 'dart:async';
-
-import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:chat_chit/utils/extensions.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 
 abstract class BaseState<T extends StatefulWidget> extends State<T> {

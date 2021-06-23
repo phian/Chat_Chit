@@ -3,7 +3,6 @@ import 'package:chat_chit/service/firebase_api/facebook_api.dart';
 import 'package:chat_chit/service/firebase_api/firebase_api.dart';
 import 'package:chat_chit/service/shared_preference_service.dart';
 import 'package:chat_chit/ui/splash/splash_route.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

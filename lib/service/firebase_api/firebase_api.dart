@@ -242,7 +242,10 @@ class FirebaseAPI {
 
   /// Notification
   void createNotification(
-      String currentUserId, QuerySnapshot messages, String currentScreen) {
+    String currentUserId,
+    QuerySnapshot messages,
+    String currentScreen,
+  ) {
     requestUserPermission();
     configureMessaging(currentUserId, messages, currentScreen);
   }
@@ -387,7 +390,7 @@ class FirebaseAPI {
         headers: <String, String>{
           'Content-Type': 'application/json',
           'Authorization':
-              'Bearer ya29.a0AfH6SMDxozjGmCavj3h0t5ZusmBS1HiSxh-lzMAAB3ZJhk8geA5LLuiQ1lu7d7kNMeSNOYr2skIFfgjhaJSxbWBaIBVZCZvmOybWpi--DKFUi0DQ1omFy9RVSTb837MoYxbpjjkOwv04ZyoYBJVkv2p78ahc',
+              'Bearer ya29.a0AfH6SMBtDsb4o-iTcJMrvh9xusNrNLiHvLD4HJs1mxQPOP-IjQ0JQHTLb3Aq7PiZmL7ozneYGSk9gWTDFEDj0CwuzTSpmDXrh9YAK74GGCVUFUs5nr1h7XHvCxJWgZP1vOD3kv1iLRGLPXkeDrVGBQVvCwa_',
         },
         body: jsonEncode({
           'message': {
@@ -421,7 +424,7 @@ class FirebaseAPI {
         headers: <String, String>{
           'Content-Type': 'application/json',
           'Authorization':
-              'Bearer ya29.a0AfH6SMDxozjGmCavj3h0t5ZusmBS1HiSxh-lzMAAB3ZJhk8geA5LLuiQ1lu7d7kNMeSNOYr2skIFfgjhaJSxbWBaIBVZCZvmOybWpi--DKFUi0DQ1omFy9RVSTb837MoYxbpjjkOwv04ZyoYBJVkv2p78ahc',
+              'Bearer ya29.a0AfH6SMBtDsb4o-iTcJMrvh9xusNrNLiHvLD4HJs1mxQPOP-IjQ0JQHTLb3Aq7PiZmL7ozneYGSk9gWTDFEDj0CwuzTSpmDXrh9YAK74GGCVUFUs5nr1h7XHvCxJWgZP1vOD3kv1iLRGLPXkeDrVGBQVvCwa_',
         },
         body: constructFCMPayload(fcmToken, sendUserName, content),
       );
