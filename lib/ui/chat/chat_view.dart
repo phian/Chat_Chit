@@ -9,6 +9,7 @@ import 'package:chat_chit/widgets/padding_widgets.dart';
 import 'package:chat_chit/widgets/screen_content_container.dart';
 import 'package:chat_chit/widgets/text_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_link_preview/flutter_link_preview.dart';
 
 import 'chat_bloc.dart';
@@ -76,37 +77,39 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
   Widget _chatViewAppBar() {
     return AppBar(
       backgroundColor: Colors.transparent,
+      backwardsCompatibility: false,
+      systemOverlayStyle: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+      ),
       elevation: 0.0,
       title: Row(
         children: [
-          Container(
-            width: 56.0,
-            height: 56.0,
-            child: ClipRRect(
-              child: Image.network(
-                getBloc().userRepo.receiveMessageUser.profileImage,
-              ),
-              borderRadius: BorderRadius.circular(90.0),
+          ClipRRect(
+            child: Image.network(
+              getBloc().userRepo.receiveMessageUser.profileImage,
+              width: 56.0,
+              height: 56.0,
             ),
+            borderRadius: BorderRadius.circular(90.0),
           ),
-          Container(
-            margin: EdgeInsets.only(left: 15.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppTextWidget(
-                  textContent: getBloc().userRepo.receiveMessageUser.lastName,
-                  fontSize: 18.0,
-                ),
-                Container(
-                  width: context.getScreenWidth(context) * 0.22,
-                  child: AppTextWidget(
+          Expanded(
+            child: Container(
+              margin: EdgeInsets.only(left: 15.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppTextWidget(
+                    textContent: getBloc().userRepo.receiveMessageUser.lastName,
+                    fontSize: 18.0,
+                  ),
+                  AppTextWidget(
                     textMaxLine: 2,
                     textContent: "Last access time...",
                     fontSize: 13.0,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -288,23 +291,23 @@ class _ChatViewState extends BaseStateBloc<ChatView, ChatBloc> {
         width: 50.0,
         height: 50.0,
         child: ClipRRect(
-          child: Image.network(
-            type == MessageType.SENT
-                ? getBloc()
-                    .userRepo
-                    .firebaseAPI
-                    .allUserImagePaths
-                    .singleWhere((element) =>
-                        element.id ==
-                        getBloc().userRepo.firebaseAPI.firebaseUser.uid)
-                    .profileImage
-                : getBloc()
-                    .userRepo
-                    .firebaseAPI
-                    .allUserImagePaths
-                    .singleWhere((element) =>
-                        element.id == getBloc().userRepo.receiveMessageUser.id)
-                    .profileImage,
+          child: StreamBuilder(
+            builder: (_, snapshot) {
+              return Image.network(
+                type == MessageType.SENT
+                    ? getBloc()
+                        .userRepo
+                        .firebaseAPI
+                        .allUserImagePaths
+                        .singleWhere((element) =>
+                            element.id ==
+                            getBloc().userRepo.firebaseAPI.firebaseUser.uid)
+                        .profileImage
+                    : snapshot.hasData
+                        ? snapshot.data
+                        : getBloc().userRepo.receiveMessageUser.profileImage,
+              );
+            },
           ),
           borderRadius: BorderRadius.circular(90.0),
         ),

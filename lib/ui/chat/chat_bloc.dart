@@ -14,6 +14,8 @@ class ChatBloc extends BaseBloc {
 
   BehaviorSubject sendMessageStream;
   BehaviorSubject<List<MessageModel>> bhMsg;
+  Stream<QuerySnapshot> get getAllUserStream =>
+      userRepo.firebaseAPI.getAllUserFromFirebaseStream();
 
   ChatBloc({this.userRepo}) {
     sendMessageStream = BehaviorSubject();

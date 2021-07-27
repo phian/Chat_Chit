@@ -8,6 +8,7 @@ import 'package:chat_chit/widgets/padding_widgets.dart';
 import 'package:chat_chit/widgets/screen_content_container.dart';
 import 'package:chat_chit/widgets/text_widget.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 class MessagesView extends StatefulWidget {
@@ -51,6 +52,10 @@ class _MessagesViewState extends BaseStateBloc<MessagesView, MessagesBloc> {
   /// AppBar
   Widget _messageScreenAppBar() {
     return AppBar(
+      backwardsCompatibility: false,
+      systemOverlayStyle: SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+      ),
       backgroundColor: Colors.transparent,
       elevation: 0.0,
       leading: Row(
@@ -65,7 +70,9 @@ class _MessagesViewState extends BaseStateBloc<MessagesView, MessagesBloc> {
                 builder: (context, snapshot) {
                   return ClipRRect(
                     child: Image.network(
-                      snapshot.data,
+                      snapshot.hasData
+                          ? snapshot.data
+                          : getBloc().userRepo.receiveMessageUser.profileImage,
                       fit: BoxFit.contain,
                     ),
                     borderRadius: BorderRadius.circular(90.0),

@@ -16,6 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
+import 'package:rxdart/rxdart.dart';
 
 class FirebaseAPI {
   FirebaseMessaging messaging = FirebaseMessaging();
@@ -23,11 +24,13 @@ class FirebaseAPI {
   User firebaseUser;
   List<FirebaseUserModel> allUserImagePaths;
   List<FacebookUserModel> allUserLastMessages;
+  BehaviorSubject<String> updateImageStream;
 
   FirebaseAPI() {
     messaging = FirebaseMessaging();
     allUserImagePaths = [];
     allUserLastMessages = [];
+    updateImageStream = BehaviorSubject<String>();
   }
 
   /// Get user
@@ -390,7 +393,7 @@ class FirebaseAPI {
         headers: <String, String>{
           'Content-Type': 'application/json',
           'Authorization':
-              'Bearer ya29.a0AfH6SMBtDsb4o-iTcJMrvh9xusNrNLiHvLD4HJs1mxQPOP-IjQ0JQHTLb3Aq7PiZmL7ozneYGSk9gWTDFEDj0CwuzTSpmDXrh9YAK74GGCVUFUs5nr1h7XHvCxJWgZP1vOD3kv1iLRGLPXkeDrVGBQVvCwa_',
+              'Bearer ya29.a0ARrdaM_ntyEOUyDseZhOiz5yE3V9464ATjtjn2Ifv1coeJBp5b-JqAs1miv6_j42hiXW8uJ-O4VeQPRqTa4IfUQwDkjRfGqCGUO3A7SzGn29ePf5FIjND5fbLyaH6Bznl6qNAGQwSDTx9xvLOs0xyQ04pz69',
         },
         body: jsonEncode({
           'message': {
@@ -424,7 +427,7 @@ class FirebaseAPI {
         headers: <String, String>{
           'Content-Type': 'application/json',
           'Authorization':
-              'Bearer ya29.a0AfH6SMBtDsb4o-iTcJMrvh9xusNrNLiHvLD4HJs1mxQPOP-IjQ0JQHTLb3Aq7PiZmL7ozneYGSk9gWTDFEDj0CwuzTSpmDXrh9YAK74GGCVUFUs5nr1h7XHvCxJWgZP1vOD3kv1iLRGLPXkeDrVGBQVvCwa_',
+              'Bearer ya29.a0ARrdaM_ntyEOUyDseZhOiz5yE3V9464ATjtjn2Ifv1coeJBp5b-JqAs1miv6_j42hiXW8uJ-O4VeQPRqTa4IfUQwDkjRfGqCGUO3A7SzGn29ePf5FIjND5fbLyaH6Bznl6qNAGQwSDTx9xvLOs0xyQ04pz69',
         },
         body: constructFCMPayload(fcmToken, sendUserName, content),
       );
@@ -448,6 +451,24 @@ class FirebaseAPI {
   }
 
   /// Update profile image
+  void updateCurrentUserImagePath(String path) {
+    var updateIndex = allUserImagePaths.indexWhere(
+      (firebaseUserModel) => firebaseUserModel.id == firebaseUser.uid,
+    );
+
+    allUserImagePaths[updateIndex].profileImage = path;
+  }
+
+  void addNewImageToStream() {
+    updateImageStream.add(
+      allUserImagePaths
+          .singleWhere(
+            (element) => element.id == firebaseUser.uid,
+          )
+          .profileImage,
+    );
+  }
+
   Future<String> uploadNewProfileImage(File imageFile) async {
     storage = FirebaseStorage.instance;
 

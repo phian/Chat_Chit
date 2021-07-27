@@ -67,10 +67,10 @@ class _SplashViewState extends BaseStateBloc<SplashView, SplashBloc> {
                       kakaoDisplayText: "SIGN IN WITH KAKAO",
                     )
                   : _signOptionContent(
-                      facebookDisplayText: "SIGN UP WITH FACEBOOK",
-                      googleDisplayText: "SIGN UP WITH GOOGLE",
-                      appleDisplayText: "SIGN UP WITH APPLE",
-                      kakaoDisplayText: "SIGN UP WITH KAKAO",
+                      facebookDisplayText: "SIGN IN WITH FACEBOOK",
+                      googleDisplayText: "SIGN IN WITH GOOGLE",
+                      appleDisplayText: "SIGN IN WITH APPLE",
+                      kakaoDisplayText: "SIGN IN WITH KAKAO",
                     ),
             ],
           );
@@ -118,7 +118,7 @@ class _SplashViewState extends BaseStateBloc<SplashView, SplashBloc> {
                 child: AppTextWidget(
                   textContent: getBloc().userStates == UserStates.NOT_LOGGED_IN
                       ? "Welcome back"
-                      : "Let's join us!",
+                      : "Welcome back",
                   fontWeight: FontWeight.bold,
                   fontSize: 22.0,
                 ),
@@ -128,7 +128,7 @@ class _SplashViewState extends BaseStateBloc<SplashView, SplashBloc> {
                 child: AppTextWidget(
                   textContent: getBloc().userStates == UserStates.NOT_LOGGED_IN
                       ? "Sign in to your account"
-                      : "Sign up new account",
+                      : "Sign in to your account",
                   fontSize: 18.0,
                 ),
               ),
@@ -176,7 +176,7 @@ class _SplashViewState extends BaseStateBloc<SplashView, SplashBloc> {
                       textContent:
                           getBloc().userStates == UserStates.NOT_LOGGED_IN
                               ? "Don't have any account?"
-                              : "Already have an account?",
+                              : "Don't have any account?",
                       fontSize: 20.0,
                     ),
                     InkWell(
@@ -185,7 +185,7 @@ class _SplashViewState extends BaseStateBloc<SplashView, SplashBloc> {
                         textContent:
                             getBloc().userStates == UserStates.NOT_LOGGED_IN
                                 ? " Sign up"
-                                : " Sign in",
+                                : " Sign up",
                         fontSize: 20.0,
                         textColor: AppPalleteColor.PURPLE_COLOR,
                       ),

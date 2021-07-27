@@ -14,13 +14,13 @@ import 'package:rxdart/rxdart.dart';
 class MessagesBloc extends BaseBloc {
   final UserRepo userRepo;
   BehaviorSubject getMessageStream;
-  BehaviorSubject<String> updateImageStream;
+  BehaviorSubject<String> get updateImageStream =>
+      userRepo.firebaseAPI.updateImageStream;
   List<FacebookUserModel> users;
   var result;
 
   MessagesBloc({this.userRepo}) {
     getMessageStream = BehaviorSubject();
-    updateImageStream = BehaviorSubject<String>();
     users = [];
     userRepo.currentScreen = "messages screen";
     updateImageStream.add(
@@ -120,7 +120,11 @@ class MessagesBloc extends BaseBloc {
     await _getImage(source).then((value) async {
       if (value != null) {
         await userRepo.firebaseAPI.uploadNewProfileImage(value).then((value) {
-          if (value != null) updateImageStream.add(value);
+          if (value != null) {
+            updateImageStream.add(value);
+
+            userRepo.firebaseAPI.updateCurrentUserImagePath(value);
+          }
         });
       }
     });
